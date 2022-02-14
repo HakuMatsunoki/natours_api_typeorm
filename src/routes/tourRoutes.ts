@@ -1,9 +1,9 @@
 import express from "express";
 
-import * as tourController from "../controllers/tourController";
-import * as authMiddleware from "../middlewares/authMiddleware";
-import * as tourMiddleware from "../middlewares/tourMiddleware";
-import { UserRoles } from "../constants";
+// import * as tourController from "../controllers/tourController";
+// import * as authMiddleware from "../middlewares/authMiddleware";
+// import * as tourMiddleware from "../middlewares/tourMiddleware";
+// import { UserRoles } from "../constants";
 
 const router = express.Router();
 
@@ -31,33 +31,33 @@ const router = express.Router();
 
 // router.route('/distances/:latlng/unit/:unit').get(tourController.getDistances);
 
-router
-  .route("/")
-  .get(tourController.getAllTours)
-  .post(
-    authMiddleware.protectRoute,
-    authMiddleware.restrictTo(UserRoles.ADMIN, UserRoles.LEAD_GUIDE),
-    tourMiddleware.filterCreateTourObject,
-    tourController.createTour
-  );
+// router
+//   .route("/")
+//   .get(tourController.getAllTours)
+//   .post(
+//     authMiddleware.protectRoute,
+//     authMiddleware.restrictTo(UserRoles.ADMIN, UserRoles.LEAD_GUIDE),
+//     tourMiddleware.filterCreateTourObject,
+//     tourController.createTour
+//   );
 
-router
-  .route("/:id")
-  .get(tourController.getTour)
-  .patch(
-    tourMiddleware.checkTourId,
-    authMiddleware.protectRoute,
-    authMiddleware.restrictTo(UserRoles.ADMIN, UserRoles.LEAD_GUIDE),
-    tourMiddleware.filterUpdateTourObject,
-    tourMiddleware.checkTourImage,
-    tourMiddleware.uploadImage,
-    tourController.updateTour
-  )
-  .delete(
-    tourMiddleware.checkTourId,
-    authMiddleware.protectRoute,
-    authMiddleware.restrictTo(UserRoles.ADMIN, UserRoles.LEAD_GUIDE),
-    tourController.deleteTour
-  );
+// router
+//   .route("/:id")
+//   .get(tourController.getTour)
+//   .patch(
+//     tourMiddleware.checkTourId,
+//     authMiddleware.protectRoute,
+//     authMiddleware.restrictTo(UserRoles.ADMIN, UserRoles.LEAD_GUIDE),
+//     tourMiddleware.filterUpdateTourObject,
+//     tourMiddleware.checkTourImage,
+//     tourMiddleware.uploadImage,
+//     tourController.updateTour
+//   )
+//   .delete(
+//     tourMiddleware.checkTourId,
+//     authMiddleware.protectRoute,
+//     authMiddleware.restrictTo(UserRoles.ADMIN, UserRoles.LEAD_GUIDE),
+//     tourController.deleteTour
+//   );
 
 export { router as tourRouter };

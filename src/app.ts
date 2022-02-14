@@ -6,7 +6,7 @@ import mongoSanitize from "express-mongo-sanitize";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import hpp from "hpp";
-import mongoose from "mongoose";
+// import mongoose from "mongoose";
 import path from "path";
 import morgan from "morgan";
 import xss from "xss-clean";
@@ -14,8 +14,8 @@ import xss from "xss-clean";
 import { serverConfigs } from "./configs";
 import { DevStatus, StatusCodes } from "./constants";
 import { globalErrorHandler } from "./controllers/errorController";
-import { authRouter, reviewRouter, tourRouter, userRouter } from "./routes";
-import { logger } from "./services";
+// import { authRouter, reviewRouter, tourRouter, userRouter } from "./routes";
+// import { logger } from "./services";
 import { AppError, requestsLimitMsg, noUrlMsg } from "./utils";
 
 class App {
@@ -70,7 +70,7 @@ class App {
 
     this.app.use(fileUpload());
     this.app.use(compression());
-    this.app.use(logger);
+    // this.app.use(logger);
 
     this.mountRoutes();
     this.setupDB();
@@ -87,21 +87,21 @@ class App {
   private async setupDB(): Promise<void> {
     // const mongo = await mongoose.connect(serverConfigs.DB);
     // console.log(mongo.connections);
-    await mongoose.connect(serverConfigs.DB);
+    // await mongoose.connect(serverConfigs.DB);
 
-    console.log("MongoDB connection OK");
+    // console.log("MongoDB connection OK");
 
-    mongoose.connection.on("error", (err) => {
-      console.log("Mongo error.. ", err);
-    });
+    // mongoose.connection.on("error", (err) => {
+    //   console.log("Mongo error.. ", err);
+    // });
   }
 
   private mountRoutes(): void {
     // this.app.use('/', viewRouter);
-    this.app.use("/api/v1/auth", authRouter);
-    this.app.use("/api/v1/reviews", reviewRouter);
-    this.app.use("/api/v1/tours", tourRouter);
-    this.app.use("/api/v1/users", userRouter);
+    // this.app.use("/api/v1/auth", authRouter);
+    // this.app.use("/api/v1/reviews", reviewRouter);
+    // this.app.use("/api/v1/tours", tourRouter);
+    // this.app.use("/api/v1/users", userRouter);
     // this.app.use('/api/v1/bookings', bookingRouter);
 
     this.app.all("*", (req, _res, next) => {
