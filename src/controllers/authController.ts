@@ -1,32 +1,48 @@
-// import type { RequestHandler } from "express";
+import type { RequestHandler } from "express";
+import { getManager } from "typeorm";
 // import crypto from "crypto";
 
 // import { RequestExt } from "../common";
-// import { Messages, StatusCodes, TokenNames } from "../constants";
+import { Messages, StatusCodes } from "../constants";
 
-// // import { User, UserDoc, Auth } from "../models";
+import { User, UserObject } from "../models";
 
-// import { generateJWTPair, JWTPair, Email } from "../services";
-// import { catchAsync, AppError } from "../utils";
+import { generateJWTPair, JWTPair, Email } from "../services";
+import { AppError, catchAsync } from "../utils";
 
-// export const signup: RequestHandler = catchAsync(async (req, res, _next) => {
-//   const newUser: UserDoc = await User.create(req.body);
+export const signup: RequestHandler = catchAsync(async (req, res, next) => {
+  const manager = getManager();
+  const newUser: UserObject = manager.create(User, req.body);
 
-//   newUser.passwd = undefined;
-//   newUser.active = undefined;
+  const { id } = await manager.save(newUser);
 
-//   const tokenPair: JWTPair = generateJWTPair(newUser.id);
-//   const email: Email = new Email(newUser);
+  newUser.passwd = undefined;
 
-//   await Auth.create({ ...tokenPair, user: newUser.id });
-//   await email.sendWelcome();
+  if (!id) return next(new AppError(Messages.INTERNAL, StatusCodes.INTERNAL));
 
-//   res.status(StatusCodes.OK).json({
-//     status: Messages.SUCCESS,
-//     user: newUser,
-//     tokenPair
-//   });
-// });
+  const tokenPair: JWTPair = generateJWTPair(id);
+  const email: Email = new Email(newUser);
+
+  // await Auth.create({ ...tokenPair, user: newUser.id });
+  await email.sendWelcome();
+
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS,
+    user: newUser,
+    tokenPair
+  });
+});
+
+// testing
+export const signget: RequestHandler = catchAsync(async (_req, res, _next) => {
+  const manager = getManager();
+  const user = await manager.find(User);
+  console.log(user);
+
+  res.status(200).json({
+    result: "ok"
+  });
+});
 
 // export const login: RequestHandler = catchAsync(
 //   async (req: RequestExt, res, _next) => {

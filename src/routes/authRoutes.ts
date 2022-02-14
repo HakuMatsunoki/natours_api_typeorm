@@ -1,16 +1,22 @@
 import express from "express";
 
-// import * as authController from "../controllers/authController";
-// import * as authMiddleware from "../middlewares/authMiddleware";
+import * as authController from "../controllers/authController";
+import * as authMiddleware from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
-// router.post(
-//   "/signup",
-//   authMiddleware.isUserDataValid,
-//   authMiddleware.isNotEmailExist,
-//   authController.signup
-// );
+router.post(
+  "/signup",
+  authMiddleware.isUserDataValid,
+  authMiddleware.isNotEmailExist,
+  authController.signup
+);
+
+router.get(
+  "/signup",
+  // authMiddleware.isNotEmailExist,
+  authController.signget
+);
 // router.post("/login", authMiddleware.isAuthenticated, authController.login);
 // router.post("/logout", authMiddleware.protectRoute, authController.logout);
 // router.post(

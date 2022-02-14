@@ -10,6 +10,7 @@ export enum Messages {
   FILE_LOAD_FAILED = "Loading failed. Try again later..",
   FILE_NOT_SINGLE = "Only single file upload allowed",
   FORBIDDEN_PASSWD_FIELD = "This route is not for password updates. Please use /updateMyPassword",
+  INTERNAL = "Something went wrong..",
   INVALID_AUTH = "Invalid login or password..",
   INVALID_CREDS = "Invalid credentials: ",
   INVALID_DATA = "Please, send only valid data..",

@@ -1,51 +1,40 @@
-// import { RequestHandler } from "express";
+import { RequestHandler } from "express";
+import { getManager } from "typeorm";
 // import { JwtPayload } from "jsonwebtoken";
 
 // import { RequestExt } from "../common";
-// import {
-//   UserRoles,
-//   Messages,
-//   StatusCodes,
-//   TokenNames,
-//   UserFields
-// } from "../constants";
-// import { Auth, AuthObject, User, UserDoc } from "../models";
+import {
+  UserRoles,
+  Messages,
+  StatusCodes,
+  // TokenNames,
+  UserFields
+} from "../constants";
+import { User } from "../models";
 // import { verifyToken } from "../services";
-// import {
-//   AppError,
-//   catchAsync,
-//   filterRequestObject,
-//   userNameHandler
-// } from "../utils";
-// import { userStrictValidators, userLoginValidators } from "../validators";
+import { AppError, catchAsync, filterRequestObject, userNameHandler } from "../utils";
+import {
+  userStrictValidators
+  // userLoginValidators
+} from "../validators";
 
-// export const isUserDataValid: RequestHandler = (req, _res, next) => {
-//   const allowedFields: string[] = [
-//     UserFields.NAME,
-//     UserFields.EMAIL,
-//     UserFields.PASSWD
-//   ];
-//   req.body = filterRequestObject(req.body, allowedFields, userStrictValidators);
-//   req.body.role = UserRoles.USER;
-//   req.body.name = userNameHandler(req.body.name);
+export const isUserDataValid: RequestHandler = (req, _res, next): void => {
+  const allowedFields: string[] = [UserFields.NAME, UserFields.EMAIL, UserFields.PASSWD];
+  req.body = filterRequestObject(req.body, allowedFields, userStrictValidators);
+  req.body.role = UserRoles.USER;
+  req.body.name = userNameHandler(req.body.name);
 
-//   next();
-// };
+  next();
+};
 
-// export const isNotEmailExist: RequestHandler = catchAsync(
-//   async (req, _res, next) => {
-//     const { email } = req.body;
+export const isNotEmailExist: RequestHandler = catchAsync(async (req, _res, next) => {
+  const { email } = req.body;
+  const userExist: boolean = !!(await getManager().findOne(User, { email }));
 
-//     const userExist: boolean = !!(await User.findOne({ email }));
+  if (userExist) return next(new AppError(Messages.DUPLICATED_ACCOUNT, StatusCodes.CONFLICT));
 
-//     if (userExist)
-//       return next(
-//         new AppError(Messages.DUPLICATED_ACCOUNT, StatusCodes.CONFLICT)
-//       );
-
-//     next();
-//   }
-// );
+  next();
+});
 
 // export const isPasswdValid: RequestHandler = (req, _res, next) => {
 //   const allowedFields: string[] = [UserFields.PASSWD];
