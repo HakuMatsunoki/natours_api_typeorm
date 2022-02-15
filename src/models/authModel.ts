@@ -1,13 +1,32 @@
-// import { model, Schema } from "mongoose";
 
-// import { ModelTableNames } from "../constants";
-// import { UserObject } from "./userModel";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, ManyToOne } from "typeorm";
 
-// export interface AuthObject {
-//   accessToken: string;
-//   refreshToken: string;
-//   user: Schema.Types.ObjectId | UserObject;
-// }
+// import { appConfig } from "../configs";
+// // import { ModelTableNames, UserFields, UserRoles } from "../constants";
+import { User } from "./userModel";
+
+
+export interface AuthObject {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+@Entity()
+export class Auth extends BaseEntity {
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
+
+  @Column()
+  accessToken!: string;
+
+  @Column()
+  refreshToken!: string;
+
+  @ManyToOne(() => User)
+  user!: User;
+}
+
 
 // const authSchema: Schema = new Schema<AuthObject>(
 //   {

@@ -4,18 +4,18 @@ import { htmlToText } from "html-to-text";
 
 import { appConfig } from "../configs";
 import { EmailSubjects, General, Messages, StatusCodes } from "../constants";
-import { UserObject } from "../models";
+import { User } from "../models";
 import { AppError } from "../utils";
 
 export class Email {
-  private user: UserObject;
+  private user: User;
   private url: string = "";
   private msg: string = "";
   private from: string = `${General.MAIN_TITLE} <${appConfig.EMAIL_FROM}>`;
   private mainTitle: string = General.MAIN_TITLE;
   private mainUrl: string = appConfig.MAIN_SITE_URL;
 
-  constructor(user: UserObject) {
+  constructor(user: User) {
     this.user = user;
   }
 

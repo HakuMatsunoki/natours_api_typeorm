@@ -19,7 +19,7 @@ import { authRouter,
 } from "./routes";
 // import { logger } from "./services";
 import { AppError, requestsLimitMsg, noUrlMsg } from "./utils";
-import { User } from "./models/userModel";
+import { User, Auth } from "./models";
 
 class App {
   private static instance: App;
@@ -90,7 +90,7 @@ class App {
       password: process.env.PG_PASSWD,
       logging: false,
       synchronize: true,
-      entities: [User]
+      entities: [User, Auth]
     })
       .then((_connection) => {
         console.log('DB connected..')

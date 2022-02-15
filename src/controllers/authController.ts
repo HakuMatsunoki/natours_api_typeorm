@@ -1,29 +1,28 @@
 import type { RequestHandler } from "express";
-import { getManager } from "typeorm";
-// import crypto from "crypto";
+import { EntityManager, getManager, MoreThan } from "typeorm";
+import crypto from "crypto";
 
-// import { RequestExt } from "../common";
-import { Messages, StatusCodes } from "../constants";
-
-import { User, UserObject } from "../models";
-
+import { RequestExt } from "../common";
+import { Messages, StatusCodes, TokenNames } from "../constants";
+import { User, Auth } from "../models";
 import { generateJWTPair, JWTPair, Email } from "../services";
 import { AppError, catchAsync } from "../utils";
 
 export const signup: RequestHandler = catchAsync(async (req, res, next) => {
-  const manager = getManager();
-  const newUser: UserObject = manager.create(User, req.body);
+  const manager: EntityManager = getManager();
+  const newUser: User = manager.create(User, req.body);
 
   const { id } = await manager.save(newUser);
 
-  newUser.passwd = undefined;
+  newUser.passwd = "";
 
   if (!id) return next(new AppError(Messages.INTERNAL, StatusCodes.INTERNAL));
 
   const tokenPair: JWTPair = generateJWTPair(id);
   const email: Email = new Email(newUser);
+  const newAuth: Auth = manager.create(Auth, { ...tokenPair, user: newUser });
 
-  // await Auth.create({ ...tokenPair, user: newUser.id });
+  await manager.save(newAuth);
   await email.sendWelcome();
 
   res.status(StatusCodes.OK).json({
@@ -33,126 +32,106 @@ export const signup: RequestHandler = catchAsync(async (req, res, next) => {
   });
 });
 
-// testing
-export const signget: RequestHandler = catchAsync(async (_req, res, _next) => {
-  const manager = getManager();
-  const user = await manager.find(User);
-  console.log(user);
+export const login: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+  const manager: EntityManager = getManager();
+  const user = req.user as User;
+  const tokenPair: JWTPair = generateJWTPair(user.id);
+  const newAuth: Auth = manager.create(Auth, { ...tokenPair, user });
 
-  res.status(200).json({
-    result: "ok"
+  await manager.save(newAuth);
+
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS,
+    user,
+    tokenPair
   });
 });
 
-// export const login: RequestHandler = catchAsync(
-//   async (req: RequestExt, res, _next) => {
-//     const user = req.user as UserDoc;
-//     const tokenPair: JWTPair = generateJWTPair(user.id);
+export const logout: RequestHandler = catchAsync(async (req, res, _next) => {
+  const accessToken: string | undefined = req.get(TokenNames.AUTH);
 
-//     await Auth.create({ ...tokenPair, user: user.id });
+  await getManager().delete(Auth, { accessToken });
 
-//     res.status(StatusCodes.OK).json({
-//       status: Messages.SUCCESS,
-//       user,
-//       tokenPair
-//     });
-//   }
-// );
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS
+  });
+});
 
-// export const logout: RequestHandler = catchAsync(async (req, res, _next) => {
-//   const accessToken: string | undefined = req.get(TokenNames.AUTH);
+export const logoutAll: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+  const user = req.user as User;
 
-//   await Auth.deleteOne({ accessToken });
+  await getManager().delete(Auth, { user });
 
-//   res.status(StatusCodes.OK).json({
-//     status: Messages.SUCCESS
-//   });
-// });
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS
+  });
+});
 
-// export const logoutAll: RequestHandler = catchAsync(
-//   async (req: RequestExt, res, _next) => {
-//     const user = req.user as UserDoc;
+export const refresh: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+  const refreshToken: string | undefined = req.get(TokenNames.AUTH);
+  const user = req.user as User;
+  const tokenPair: JWTPair = generateJWTPair(user.id);
 
-//     await Auth.deleteMany({ user: user.id });
+  await getManager().update(Auth, { refreshToken }, { ...tokenPair, user });
 
-//     res.status(StatusCodes.OK).json({
-//       status: Messages.SUCCESS
-//     });
-//   }
-// );
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS,
+    user,
+    tokenPair
+  });
+});
 
-// export const refresh: RequestHandler = catchAsync(
-//   async (req: RequestExt, res, _next) => {
-//     const refreshToken: string | undefined = req.get(TokenNames.AUTH);
-//     const user = req.user as UserDoc;
-//     const tokenPair: JWTPair = generateJWTPair(user.id);
+export const forgotPasswd: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+  const manager: EntityManager = getManager();
+  const user = req.user as User;
+  const resetToken: string = user.createPasswdResetToken();
+  const email: Email = new Email(user);
 
-//     await Auth.updateOne({ refreshToken }, { ...tokenPair, user });
+  await manager.save(user);
+  await email.sendPasswdReset(resetToken);
 
-//     res.status(StatusCodes.OK).json({
-//       status: Messages.SUCCESS,
-//       user,
-//       tokenPair
-//     });
-//   }
-// );
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS,
+    resetToken
+  });
+});
 
-// export const forgotPasswd: RequestHandler = catchAsync(
-//   async (req: RequestExt, res, _next) => {
-//     const user = req.user as UserDoc;
-//     const resetToken: string = user.createPasswdResetToken();
-//     const email: Email = new Email(user);
+export const resetPasswd: RequestHandler = catchAsync(async (req, res, next) => {
+  const manager: EntityManager = getManager();
+  const hashedToken: string = crypto.createHash("sha256").update(req.params.token).digest("hex");
 
-//     await user.save({ validateBeforeSave: false });
-//     await email.sendPasswdReset(resetToken);
+  const user: User | undefined = await manager.findOne(User, {
+    passwdResetToken: hashedToken,
+    passwdResetExpires: MoreThan(Date.now())
+  });
 
-//     res.status(StatusCodes.OK).json({
-//       status: Messages.SUCCESS
-//     });
-//   }
-// );
+  if (!user) return next(new AppError(Messages.EXPIRED_TOKEN, StatusCodes.BAD_REQUEST));
 
-// export const resetPasswd: RequestHandler = catchAsync(
-//   async (req, res, next) => {
-//     const hashedToken = crypto
-//       .createHash("sha256")
-//       .update(req.params.token)
-//       .digest("hex");
+  user.passwd = req.body.passwd;
+  user.passwdResetToken = undefined;
+  user.passwdResetExpires = undefined;
 
-//     const user: UserDoc | null = await User.findOne({
-//       passwdResetToken: hashedToken,
-//       passwdResetExpires: { $gt: Date.now() }
-//     });
+  await user.save();
 
-//     if (!user)
-//       return next(
-//         new AppError(Messages.EXPIRED_TOKEN, StatusCodes.BAD_REQUEST)
-//       );
+  user.passwd = "";
 
-//     user.passwd = req.body.passwd;
-//     user.passwdResetToken = undefined;
-//     user.passwdResetExpires = undefined;
+  const tokenPair: JWTPair = generateJWTPair(user.id);
+  const newAuth: Auth = manager.create(Auth, { ...tokenPair, user });
 
-//     await user.save();
+  await manager.delete(Auth, { user });
+  await manager.save(newAuth);
 
-//     user.passwd = undefined;
-//     const tokenPair: JWTPair = generateJWTPair(user.id);
+  const email: Email = new Email(user);
+  const msg: string = Messages.PASS_UPDATED;
 
-//     await Auth.deleteMany({ user: user.id });
-//     await Auth.create({ ...tokenPair, user: user.id });
+  await email.sendCustomMsg(msg);
 
-//     const email: Email = new Email(user);
-//     const msg: string = Messages.PASS_UPDATED;
-
-//     await email.sendCustomMsg(msg);
-
-//     res.status(StatusCodes.OK).json({
-//       status: Messages.SUCCESS,
-//       user,
-//       tokenPair
-//     });
-//   }
-// );
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS,
+    user,
+    tokenPair
+  });
+});
 
 // export const updateMyPasswd: RequestHandler = catchAsync(
 //   async (req: RequestExt, res, next) => {

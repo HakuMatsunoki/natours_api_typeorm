@@ -7,23 +7,23 @@ import { appConfig } from "../configs";
 // import { ModelTableNames, UserFields, UserRoles } from "../constants";
 import { UserFields } from "../constants";
 
-export interface UserObject {
-  id?: string;
-  [UserFields.NAME]: string;
-  [UserFields.EMAIL]: string;
-  [UserFields.PHOTO]: string;
-  [UserFields.ROLE]: string;
-  [UserFields.PASSWD]?: string;
-  [UserFields.PASSWD_CHANGED_AT]?: Date;
-  [UserFields.PASSWD_RESET_TOKEN]?: string;
-  [UserFields.PASSWD_RESET_EXPIRES]?: number;
-  [UserFields.ACTIVE]?: boolean;
-  checkPasswd: (candidatePasswd: string) => Promise<boolean>;
-  createPasswdResetToken: () => string;
-  // changedPasswdAfter: (JWTTimestamp: number) => boolean;
-}
+// import { Auth } from "./authModel";
 
-export interface UserDoc extends UserObject, Document {}
+// export interface UserObject {
+//   id?: string;
+//   [UserFields.NAME]: string;
+//   [UserFields.EMAIL]: string;
+//   [UserFields.PHOTO]: string;
+//   [UserFields.ROLE]: string;
+//   [UserFields.PASSWD]?: string;
+//   [UserFields.PASSWD_CHANGED_AT]?: Date;
+//   [UserFields.PASSWD_RESET_TOKEN]?: string;
+//   [UserFields.PASSWD_RESET_EXPIRES]?: number;
+//   [UserFields.ACTIVE]?: boolean;
+//   checkPasswd: (candidatePasswd: string) => Promise<boolean>;
+//   createPasswdResetToken: () => string;
+//   // changedPasswdAfter: (JWTTimestamp: number) => boolean;
+// }
 
 @Entity()
 export class User extends BaseEntity {
@@ -46,13 +46,13 @@ export class User extends BaseEntity {
   [UserFields.PASSWD]: string;
 
   @Column("bigint", { default: Date.now() })
-  [UserFields.PASSWD_CHANGED_AT]: Date;
+  [UserFields.PASSWD_CHANGED_AT]: number;
 
   @Column("varchar", { default: null })
-  [UserFields.PASSWD_RESET_TOKEN]: string;
+  [UserFields.PASSWD_RESET_TOKEN]: string | void;
 
   @Column("bigint", { default: null })
-  [UserFields.PASSWD_RESET_EXPIRES]: number;
+  [UserFields.PASSWD_RESET_EXPIRES]: number | void;
 
   @Column("boolean", { default: true })
   [UserFields.ACTIVE]: boolean;

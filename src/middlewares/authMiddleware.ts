@@ -1,25 +1,17 @@
 import { RequestHandler } from "express";
 import { getManager } from "typeorm";
-// import { JwtPayload } from "jsonwebtoken";
+import { JwtPayload } from "jsonwebtoken";
 
-// import { RequestExt } from "../common";
-import {
-  UserRoles,
-  Messages,
-  StatusCodes,
-  // TokenNames,
-  UserFields
-} from "../constants";
-import { User } from "../models";
-// import { verifyToken } from "../services";
+import { RequestExt } from "../common";
+import { UserRoles, Messages, StatusCodes, TokenNames, UserFields } from "../constants";
+import { User, Auth } from "../models";
+import { verifyToken } from "../services";
 import { AppError, catchAsync, filterRequestObject, userNameHandler } from "../utils";
-import {
-  userStrictValidators
-  // userLoginValidators
-} from "../validators";
+import { userStrictValidators, userLoginValidators } from "../validators";
 
 export const isUserDataValid: RequestHandler = (req, _res, next): void => {
   const allowedFields: string[] = [UserFields.NAME, UserFields.EMAIL, UserFields.PASSWD];
+
   req.body = filterRequestObject(req.body, allowedFields, userStrictValidators);
   req.body.role = UserRoles.USER;
   req.body.name = userNameHandler(req.body.name);
@@ -27,7 +19,7 @@ export const isUserDataValid: RequestHandler = (req, _res, next): void => {
   next();
 };
 
-export const isNotEmailExist: RequestHandler = catchAsync(async (req, _res, next) => {
+export const isNotEmailExist: RequestHandler = catchAsync(async (req, _res, next): Promise<void> => {
   const { email } = req.body;
   const userExist: boolean = !!(await getManager().findOne(User, { email }));
 
@@ -36,126 +28,96 @@ export const isNotEmailExist: RequestHandler = catchAsync(async (req, _res, next
   next();
 });
 
-// export const isPasswdValid: RequestHandler = (req, _res, next) => {
-//   const allowedFields: string[] = [UserFields.PASSWD];
-//   req.body = filterRequestObject(req.body, allowedFields, userStrictValidators);
+export const isPasswdValid: RequestHandler = (req, _res, next) => {
+  const allowedFields: string[] = [UserFields.PASSWD];
 
-//   next();
-// };
+  req.body = filterRequestObject(req.body, allowedFields, userStrictValidators);
 
-// export const isAccountExist: RequestHandler = catchAsync(
-//   async (req: RequestExt, _res, next) => {
-//     const allowedFields: string[] = [UserFields.EMAIL];
-//     const { email } = filterRequestObject(
-//       req.body,
-//       allowedFields,
-//       userStrictValidators
-//     );
+  next();
+};
 
-//     const user: UserDoc | null = await User.findOne({
-//       email
-//     });
+export const isAccountExist: RequestHandler = catchAsync(async (req: RequestExt, _res, next) => {
+  const allowedFields: string[] = [UserFields.EMAIL];
+  const { email } = filterRequestObject(req.body, allowedFields, userStrictValidators);
 
-//     if (!user)
-//       return next(new AppError(Messages.NO_USER, StatusCodes.NOT_FOUND));
+  const user: User | undefined = await getManager().findOne(User, { email });
 
-//     req.user = user;
+  if (!user) return next(new AppError(Messages.NO_USER, StatusCodes.NOT_FOUND));
 
-//     next();
-//   }
-// );
+  req.user = user;
 
-// export const isAuthenticated: RequestHandler = catchAsync(
-//   async (req: RequestExt, _res, next) => {
-//     const allowedFields: string[] = [UserFields.EMAIL, UserFields.PASSWD];
-//     const { email, passwd } = filterRequestObject(
-//       req.body,
-//       allowedFields,
-//       userLoginValidators,
-//       Messages.INVALID_AUTH
-//     );
+  next();
+});
 
-//     const user: UserDoc | null = await User.findOne({ email }).select(
-//       "+passwd"
-//     );
+export const isAuthenticated: RequestHandler = catchAsync(async (req: RequestExt, _res, next): Promise<void> => {
+  const allowedFields: string[] = [UserFields.EMAIL, UserFields.PASSWD];
+  const { email, passwd } = filterRequestObject(req.body, allowedFields, userLoginValidators, Messages.INVALID_AUTH);
 
-//     if (!user || !(await user.checkPasswd(passwd))) {
-//       return next(new AppError(Messages.INVALID_AUTH, StatusCodes.UNAUTH));
-//     }
+  const user: User | undefined = await getManager().findOne(User, { email });
 
-//     user.passwd = undefined;
-//     req.user = user;
+  if (!user || !(await user.checkPasswd(passwd))) {
+    return next(new AppError(Messages.INVALID_AUTH, StatusCodes.UNAUTH));
+  }
 
-//     next();
-//   }
-// );
+  user.passwd = "";
+  req.user = user;
 
-// export const protectRoute: RequestHandler = catchAsync(
-//   async (req: RequestExt, _res, next) => {
-//     const accessToken: string | undefined = req.get(TokenNames.AUTH);
+  next();
+});
 
-//     if (!accessToken)
-//       return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
+export const protectRoute: RequestHandler = catchAsync(async (req: RequestExt, _res, next) => {
+  const accessToken: string | undefined = req.get(TokenNames.AUTH);
 
-//     const decoded = verifyToken(accessToken) as JwtPayload;
+  if (!accessToken) return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
 
-//     const authObject: AuthObject = await Auth.findOne({
-//       accessToken
-//     }).populate("user");
+  const authObject: Auth | undefined = await getManager().findOne(Auth, {
+    where: { accessToken },
+    relations: ["user"]
+  });
 
-//     const currentUser = authObject?.user as UserDoc | void;
+  const user = authObject?.user as User | undefined;
+  const decoded = verifyToken(accessToken) as JwtPayload;
 
-//     if (
-//       !decoded.id ||
-//       !decoded.iat ||
-//       !currentUser ||
-//       currentUser.id !== decoded.id
-//     )
-//       return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
+  if (!decoded.id || !decoded.iat || !user || user.id !== decoded.id)
+    return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
 
-//     // maybe not necessary
-//     if (currentUser.changedPasswdAfter(decoded.iat))
-//       return next(
-//         new AppError("User recenty changed password! Please log in again.", 401)
-//       );
+  // maybe not necessary
+  // if (user.changedPasswdAfter(decoded.iat))
+  //   return next(
+  //     new AppError("User recenty changed password! Please log in again.", 401)
+  //   );
 
-//     req.user = currentUser;
+  req.user = user;
 
-//     next();
-//   }
-// );
+  next();
+});
 
-// export const checkRefresh: RequestHandler = catchAsync(
-//   async (req: RequestExt, _res, next) => {
-//     const refreshToken: string | undefined = req.get(TokenNames.AUTH);
+export const checkRefresh: RequestHandler = catchAsync(async (req: RequestExt, _res, next) => {
+  const refreshToken: string | undefined = req.get(TokenNames.AUTH);
 
-//     if (!refreshToken)
-//       return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
+  if (!refreshToken) return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
 
-//     const { id } = verifyToken(refreshToken, false) as JwtPayload;
+  const authObject: Auth | undefined = await getManager().findOne(Auth, {
+    where: { refreshToken },
+    relations: ["user"]
+  });
 
-//     const authObject: AuthObject | null = await Auth.findOne({
-//       refreshToken
-//     }).populate("user");
+  const user = authObject?.user as User | undefined;
+  const { id } = verifyToken(refreshToken, false) as JwtPayload;
 
-//     const userObject = authObject?.user as UserDoc | void;
+  if (!id || !user || user.id !== id) return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
 
-//     if (!id || !userObject || userObject.id !== id)
-//       return next(new AppError(Messages.INVALID_TOKEN, StatusCodes.UNAUTH));
+  req.user = user;
 
-//     req.user = userObject;
+  next();
+});
 
-//     next();
-//   }
-// );
+export const restrictTo =
+  (...userRoles: Array<string>): RequestHandler =>
+  (req: RequestExt, _res, next) => {
+    const user = req.user as User;
 
-// export const restrictTo =
-//   (...userRoles: Array<string>): RequestHandler =>
-//   (req: RequestExt, _res, next) => {
-//     const user = req.user as UserDoc;
+    if (!userRoles.includes(user.role)) return next(new AppError(Messages.NOT_ALLOWED, StatusCodes.NOT_ALLOWED));
 
-//     if (!userRoles.includes(user.role))
-//       return next(new AppError(Messages.NOT_ALLOWED, StatusCodes.NOT_ALLOWED));
-
-//     next();
-//   };
+    next();
+  };
