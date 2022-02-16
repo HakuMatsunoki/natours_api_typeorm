@@ -1,36 +1,41 @@
-// import { RequestHandler } from "express";
+import { RequestHandler } from "express";
 // import { UploadedFile } from "express-fileupload";
-// import crypto from "crypto";
+import crypto from "crypto";
 
 // import { RequestExt } from "../common";
-// import { appConfig } from "../configs";
-// import { Messages, Params, StatusCodes, UserFields } from "../constants";
-// import { UserDoc } from "../models";
-// import { Email, s3BucketUpload, imageSharper } from "../services";
-// import {
-//   AppError,
-//   catchAsync,
-//   fileNameBuilder,
-//   FileName,
-//   filterRequestObject,
-//   imageCheckHelper
-// } from "../utils";
-// import {
-//   paramsValidators,
-//   userRegularValidators,
-//   userStrictValidators
-// } from "../validators";
+import { appConfig } from "../configs";
+import {
+  // Messages,
+  Params,
+  // StatusCodes,
+  UserFields
+} from "../constants";
+import { User } from "../models";
+import {
+  Email
+  // s3BucketUpload, imageSharper
+} from "../services";
+import {
+  //   AppError,
+  catchAsync,
+  //   fileNameBuilder,
+  //   FileName,
+  filterRequestObject
+  //   imageCheckHelper
+} from "../utils";
+import {
+  paramsValidators,
+  //   userRegularValidators,
+  userStrictValidators
+} from "../validators";
 
-// export const filterCreateUserObject: RequestHandler = (req, _res, next) => {
-//   const allowedFields: string[] = [
-//     UserFields.NAME,
-//     UserFields.EMAIL,
-//     UserFields.ROLE
-//   ];
-//   req.body = filterRequestObject(req.body, allowedFields, userStrictValidators);
+export const filterCreateUserObject: RequestHandler = (req, _res, next) => {
+  const allowedFields: string[] = [UserFields.NAME, UserFields.EMAIL, UserFields.ROLE];
 
-//   next();
-// };
+  req.body = filterRequestObject(req.body, allowedFields, userStrictValidators);
+
+  next();
+};
 
 // export const filterUpdateUserObject: RequestHandler = (req, _res, next) => {
 //   const allowedFields: string[] = [UserFields.NAME, UserFields.EMAIL];
@@ -43,27 +48,24 @@
 //   next();
 // };
 
-// export const checkId: RequestHandler = (req, _res, next) => {
-//   const allowedFields: string[] = [Params.ID];
-//   req.params = filterRequestObject(req.params, allowedFields, paramsValidators);
+export const checkId: RequestHandler = (req, _res, next) => {
+  const allowedFields: string[] = [Params.ID];
+  
+  req.params = filterRequestObject(req.params, allowedFields, paramsValidators);
 
-//   next();
-// };
+  next();
+};
 
-// export const sendTempUserCreds: RequestHandler = catchAsync(
-//   async (req, _res, next) => {
-//     req.body.passwd = crypto
-//       .randomBytes(appConfig.PASSWD_RESET_TOKEN_LENGTH)
-//       .toString("hex");
+export const sendTempUserCreds: RequestHandler = catchAsync(async (req, _res, next) => {
+  req.body.passwd = crypto.randomBytes(appConfig.PASSWD_RESET_TOKEN_LENGTH).toString("hex");
 
-//     const user = req.body as UserDoc;
-//     const email: Email = new Email(user);
+  const user = req.body as User;
+  const email: Email = new Email(user);
 
-//     await email.sendWelcomeFromRoot(appConfig.CHANGE_PASSWD_URL);
+  await email.sendWelcomeFromRoot(appConfig.CHANGE_PASSWD_URL);
 
-//     next();
-//   }
-// );
+  next();
+});
 
 // export const checkUserPhoto: RequestHandler = (req: RequestExt, _res, next) => {
 //   const photo: UploadedFile | UploadedFile[] | undefined = req.files?.photo;

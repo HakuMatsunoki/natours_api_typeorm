@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 // import { model, Schema, Document } from "mongoose";
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, BeforeInsert } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, BeforeInsert, BeforeUpdate  } from "typeorm";
 
 import { appConfig } from "../configs";
 // import { ModelTableNames, UserFields, UserRoles } from "../constants";
@@ -42,22 +42,23 @@ export class User extends BaseEntity {
   @Column()
   [UserFields.ROLE]: string;
 
-  @Column()
+  @Column({ select: false })
   [UserFields.PASSWD]: string;
 
-  @Column("bigint", { default: Date.now() })
+  @Column("bigint", { default: Date.now(), select: false })
   [UserFields.PASSWD_CHANGED_AT]: number;
 
-  @Column("varchar", { default: null })
-  [UserFields.PASSWD_RESET_TOKEN]: string | void;
+  @Column("varchar", { default: null, select: false })
+  [UserFields.PASSWD_RESET_TOKEN]: string | null;
 
-  @Column("bigint", { default: null })
-  [UserFields.PASSWD_RESET_EXPIRES]: number | void;
+  @Column("bigint", { default: null, select: false })
+  [UserFields.PASSWD_RESET_EXPIRES]: number | null;
 
   @Column("boolean", { default: true })
   [UserFields.ACTIVE]: boolean;
 
   @BeforeInsert()
+  @BeforeUpdate()
   async updateDates(): Promise<void> {
     this[UserFields.PASSWD] = await bcrypt.hash(this.passwd, appConfig.BCRYPT_COST);
   }

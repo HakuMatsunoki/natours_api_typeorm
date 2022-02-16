@@ -6,11 +6,11 @@ import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, ManyToOne } from "t
 import { User } from "./userModel";
 
 
-export interface AuthObject {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
-}
+// export interface AuthObject {
+//   accessToken: string;
+//   refreshToken: string;
+//   user: User;
+// }
 
 @Entity()
 export class Auth extends BaseEntity {

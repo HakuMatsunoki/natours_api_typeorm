@@ -14,8 +14,10 @@ import xss from "xss-clean";
 import { serverConfigs } from "./configs";
 import { DevStatus, StatusCodes } from "./constants";
 import { globalErrorHandler } from "./controllers/errorController";
-import { authRouter, 
-  // reviewRouter, tourRouter, userRouter 
+import {
+  authRouter,
+  userRouter
+  // reviewRouter, tourRouter,
 } from "./routes";
 // import { logger } from "./services";
 import { AppError, requestsLimitMsg, noUrlMsg } from "./utils";
@@ -93,7 +95,7 @@ class App {
       entities: [User, Auth]
     })
       .then((_connection) => {
-        console.log('DB connected..')
+        console.log("DB connected..");
       })
       .catch((error) => console.log(error));
   }
@@ -103,7 +105,7 @@ class App {
     this.app.use("/api/v1/auth", authRouter);
     // this.app.use("/api/v1/reviews", reviewRouter);
     // this.app.use("/api/v1/tours", tourRouter);
-    // this.app.use("/api/v1/users", userRouter);
+    this.app.use("/api/v1/users", userRouter);
     // this.app.use('/api/v1/bookings', bookingRouter);
 
     this.app.all("*", (req, _res, next) => {

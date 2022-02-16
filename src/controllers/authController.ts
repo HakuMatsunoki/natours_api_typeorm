@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { EntityManager, getManager, MoreThan } from "typeorm";
+import { EntityManager, getManager, getRepository, MoreThan } from "typeorm";
 import crypto from "crypto";
 
 import { RequestExt } from "../common";
@@ -8,7 +8,13 @@ import { User, Auth } from "../models";
 import { generateJWTPair, JWTPair, Email } from "../services";
 import { AppError, catchAsync } from "../utils";
 
-export const signup: RequestHandler = catchAsync(async (req, res, next) => {
+/**
+ * Signup controller function with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const signup: RequestHandler = catchAsync(async (req, res, next): Promise<void> => {
   const manager: EntityManager = getManager();
   const newUser: User = manager.create(User, req.body);
 
@@ -32,7 +38,13 @@ export const signup: RequestHandler = catchAsync(async (req, res, next) => {
   });
 });
 
-export const login: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+/**
+ * Login controller function with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const login: RequestHandler = catchAsync(async (req: RequestExt, res, _next): Promise<void> => {
   const manager: EntityManager = getManager();
   const user = req.user as User;
   const tokenPair: JWTPair = generateJWTPair(user.id);
@@ -47,7 +59,13 @@ export const login: RequestHandler = catchAsync(async (req: RequestExt, res, _ne
   });
 });
 
-export const logout: RequestHandler = catchAsync(async (req, res, _next) => {
+/**
+ * Logout controller function with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const logout: RequestHandler = catchAsync(async (req, res, _next): Promise<void> => {
   const accessToken: string | undefined = req.get(TokenNames.AUTH);
 
   await getManager().delete(Auth, { accessToken });
@@ -57,7 +75,13 @@ export const logout: RequestHandler = catchAsync(async (req, res, _next) => {
   });
 });
 
-export const logoutAll: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+/**
+ * Logout all devices controller function with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const logoutAll: RequestHandler = catchAsync(async (req: RequestExt, res, _next): Promise<void> => {
   const user = req.user as User;
 
   await getManager().delete(Auth, { user });
@@ -67,7 +91,13 @@ export const logoutAll: RequestHandler = catchAsync(async (req: RequestExt, res,
   });
 });
 
-export const refresh: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+/**
+ * Refresh jwt-pair controller function with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const refresh: RequestHandler = catchAsync(async (req: RequestExt, res, _next): Promise<void> => {
   const refreshToken: string | undefined = req.get(TokenNames.AUTH);
   const user = req.user as User;
   const tokenPair: JWTPair = generateJWTPair(user.id);
@@ -81,7 +111,13 @@ export const refresh: RequestHandler = catchAsync(async (req: RequestExt, res, _
   });
 });
 
-export const forgotPasswd: RequestHandler = catchAsync(async (req: RequestExt, res, _next) => {
+/**
+ * Create password reset token controller function with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const forgotPasswd: RequestHandler = catchAsync(async (req: RequestExt, res, _next): Promise<void> => {
   const manager: EntityManager = getManager();
   const user = req.user as User;
   const resetToken: string = user.createPasswdResetToken();
@@ -96,7 +132,13 @@ export const forgotPasswd: RequestHandler = catchAsync(async (req: RequestExt, r
   });
 });
 
-export const resetPasswd: RequestHandler = catchAsync(async (req, res, next) => {
+/**
+ * Reset password controller function with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const resetPasswd: RequestHandler = catchAsync(async (req, res, next): Promise<void> => {
   const manager: EntityManager = getManager();
   const hashedToken: string = crypto.createHash("sha256").update(req.params.token).digest("hex");
 
@@ -108,8 +150,8 @@ export const resetPasswd: RequestHandler = catchAsync(async (req, res, next) => 
   if (!user) return next(new AppError(Messages.EXPIRED_TOKEN, StatusCodes.BAD_REQUEST));
 
   user.passwd = req.body.passwd;
-  user.passwdResetToken = undefined;
-  user.passwdResetExpires = undefined;
+  user.passwdResetToken = null;
+  user.passwdResetExpires = null;
 
   await user.save();
 
@@ -133,36 +175,44 @@ export const resetPasswd: RequestHandler = catchAsync(async (req, res, next) => 
   });
 });
 
-// export const updateMyPasswd: RequestHandler = catchAsync(
-//   async (req: RequestExt, res, next) => {
-//     const { id } = req.user as UserDoc;
+/**
+ * Controller function to update current user password with catch-async-errors wrapper
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const updateMyPasswd: RequestHandler = catchAsync(async (req: RequestExt, res, next): Promise<void> => {
+  const manager: EntityManager = getManager();
+  const { id } = req.user as User;
 
-//     const user: UserDoc | null = await User.findById(id).select("+passwd");
+  const user: User | undefined = await getRepository(User)
+    .createQueryBuilder("user")
+    .where({ id })
+    .select(["user", "user.passwd"])
+    .getOne();
 
-//     if (!user || !(await user.checkPasswd(req.body.passwdCurrent))) {
-//       return next(
-//         new AppError(Messages.INVALID_PASSWD_CURRENT, StatusCodes.UNAUTH)
-//       );
-//     }
+  if (!user || !(await user.checkPasswd(req.body.passwdCurrent))) {
+    return next(new AppError(Messages.INVALID_PASSWD_CURRENT, StatusCodes.UNAUTH));
+  }
 
-//     user.passwd = req.body.passwd;
+  user.passwd = req.body.passwd;
 
-//     await user.save();
+  await user.save();
 
-//     user.passwd = undefined;
-//     const tokenPair: JWTPair = generateJWTPair(user.id);
+  user.passwd = "";
+  const tokenPair: JWTPair = generateJWTPair(user.id);
+  const newAuth: Auth = manager.create(Auth, { ...tokenPair, user });
 
-//     await Auth.deleteMany({ user: user.id });
-//     await Auth.create({ ...tokenPair, user: user.id });
+  await manager.delete(Auth, { user });
+  await manager.save(newAuth);
 
-//     const email: Email = new Email(user);
-//     const msg: string = Messages.PASS_UPDATED;
+  const email: Email = new Email(user);
+  const msg: string = Messages.PASS_UPDATED;
 
-//     await email.sendCustomMsg(msg);
+  await email.sendCustomMsg(msg);
 
-//     res.status(StatusCodes.OK).json({
-//       status: Messages.SUCCESS,
-//       tokenPair
-//     });
-//   }
-// );
+  res.status(StatusCodes.OK).json({
+    status: Messages.SUCCESS,
+    tokenPair
+  });
+});

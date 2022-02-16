@@ -5,5 +5,5 @@ import { regexp } from "../configs";
 import { Params } from "../constants";
 
 export const paramsValidators: JoiValidatorsObj = {
-  [Params.ID]: Joi.string().regex(regexp.HEX),
+  [Params.ID]: Joi.string().regex(regexp.UUID),
 };
